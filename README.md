@@ -15,8 +15,11 @@ NOTE: this is not meant to be a physically true simulation of firefly flashes. I
 
 
 TODO:
-flesh out the details of the simulation
-      - add algorithm details for the synchronization
-update readme to reflect all of those details
-figure out a design path and short term goals
+flesh out the details of the simulation\n\t
+      - add algorithm details for the synchronization\n
+update readme to reflect all of those details\n
+figure out a design path and short term goals\n
 basically everything, except the minimal PyQt research/learning I have done
+
+
+learn how to format readme to make it actually readable

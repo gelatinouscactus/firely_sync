@@ -67,6 +67,7 @@ class Main(QGraphicsView):
         self.scene.update()
 
 
+class Fly(QWidget):
 
 
 

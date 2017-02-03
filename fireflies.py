@@ -1,23 +1,25 @@
-import math, random
+from math import *
+import random
 
 from PyQt5.QtWidgets import (QApplication, QGraphicsItem, QGraphicsScene, QGraphicsView)
 from PyQt5.QtGui import (QPixmap, QPainter, QRadialGradient)
-from PyQt5.QtCore import (qrand, qsrand, Qt, QTime, QTimer, QRectF)
+from PyQt5.QtCore import (qrand, qsrand, Qt, QTime, QTimer, QRectF, QLineF, QPointF)
 
 class Firefly(QGraphicsItem):
-    Pi = math.pi
-    Tau = 2*Pi
 
+    MaxDist = 150 # distance from center before the fireflies turn around
 
-    def __init__(self):
+    def __init__(self, freq=1.0, speed=0.1, angle=0.0):
         super().__init__()
 
-        self.freq = 1.0
-        self.speed = 0.0
-        self.angle = 0.0
+        self.freq = freq
+        self.speed = speed
+        self.angle = angle
         self.scale = 0.0
         self.omega = 1
+        self.pulse_angle = 0.0
 
+        
         self.timer_interval = 30
         self.timer = QTimer()
         self.timer.timeout.connect(self.timerEvent)
@@ -28,13 +30,22 @@ class Firefly(QGraphicsItem):
         return QRectF(0, 0, 60, 60)
 
 
+    @staticmethod
+    def normalizeAngle(angle):
+        while angle < 0:
+            angle += 2*pi
+        while angle > 2*pi:
+            angle -= 2*pi
+        return angle
+    
+
     def paint(self, painter, option, widget):
 
         
         radialGrad = QRadialGradient(30, 30, 30)
-        radialGrad.setColorAt(0*self.scale, Qt.yellow)
-        radialGrad.setColorAt(0.2*self.scale, Qt.yellow)
-        radialGrad.setColorAt(1*self.scale, Qt.transparent)
+        radialGrad.setColorAt(0, Qt.yellow)
+        radialGrad.setColorAt(0.2, Qt.yellow)
+        radialGrad.setColorAt(1, Qt.transparent)
 
         #pixmap = QPixmap(60, 60)
         #pixmap.fill(Qt.transparent)
@@ -48,16 +59,48 @@ class Firefly(QGraphicsItem):
 
     def timerEvent(self):
         #implement movement, pulsing here
-        self.angle += (Firefly.Pi / self.timer_interval)
-        self.scale = math.exp(self.omega*math.sin(self.freq*self.angle))/math.exp(self.omega)
+        self.pulse_angle += (pi / self.timer_interval)
+        self.scale = exp(self.omega*sin(self.freq*self.angle))/exp(self.omega)
+        self.setOpacity(exp(self.omega*sin(self.freq*self.pulse_angle))/exp(self.omega))
 
-        self.update()
+        #linetocenter
+        ltc = QLineF(QPointF(0, 0,), self.mapFromScene(0, 0))
+
+        if ltc.length() > Firefly.MaxDist:
+            #angle to center
+            atc = acos(ltc.dx() / ltc.length())
+
+            if ltc.dy() < 0:
+                atc = 2*pi - atc
+            atc = Firefly.normalizeAngle((pi - atc) + pi / 2)
+
+            if atc < pi and atc > pi / 4:
+                #rotate left
+                self.angle += [-0.25, 0.25][self.angle < -pi/2]
+
+            elif atc >= pi and atc < (pi + pi/2 + pi/4):
+                #rotate right
+                self.angle += [-0.25, 0.25][self.angle < pi/2]
+
+        elif sin(self.angle) < 0:
+            self.angle += 0.25
+        elif sin(self.angle) > 0:
+            self.angle -= 0.25
+                
+        dist = self.speed * self.timer_interval
+        dx = dist*cos(self.angle)
+        dy = dist*sin(self.angle)
+#        dt = sin(self.angle)*10
+
+        self.setPos(self.x()+dx, self.y()+dy)
+#        self.setRotation(self.rotation() + self.angle)
 
 
+        
 if __name__ == '__main__':
     import sys
 
-    FlyCount = 4
+    FlyCount = 15
 
     app = QApplication(sys.argv)
     qsrand(QTime(0, 0, 0,).secsTo(QTime.currentTime()))
@@ -67,20 +110,21 @@ if __name__ == '__main__':
     scene.setItemIndexMethod(QGraphicsScene.NoIndex)
 
     for i in range(FlyCount):
-        fly = Firefly()
-        fly.setPos(math.sin((i*Firefly.Tau) / FlyCount)*200,
-                            math.cos((i*Firefly.Tau) / FlyCount) * 200)
+        random_speed = (-50 + qrand()%100)/1000
+        random_angle = (-pi + qrand()%(2*pi))/2*pi
+        fly = Firefly(speed=random_speed, angle=random_angle)
+        fly.setPos(sin((i*2*pi) / FlyCount)*200,
+                            cos((i*2*pi) / FlyCount) * 200)
         scene.addItem(fly)
 
     view = QGraphicsView(scene)
     view.setRenderHint(QPainter.Antialiasing)
     view.setBackgroundBrush(Qt.black)
     view.setCacheMode(QGraphicsView.CacheBackground)
-    view.setViewportUpdateMode(QGraphicsView.FullViewportUpdate)
+    view.setViewportUpdateMode(QGraphicsView.BoundingRectViewportUpdate)
     view.setDragMode(QGraphicsView.ScrollHandDrag)
     view.setWindowTitle('Colliding Mice')
-    view.resize(400, 300)
+    view.resize(600, 800)
     view.show()
 
     sys.exit(app.exec_())
-B

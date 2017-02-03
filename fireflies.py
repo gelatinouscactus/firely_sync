@@ -9,7 +9,7 @@ class Firefly(QGraphicsItem):
 
     MaxDist = 150 # distance from center before the fireflies turn around
 
-    def __init__(self, freq=1.0, speed=0.1, angle=0.0):
+    def __init__(self, freq=1.0, speed=0.1, angle=0.0, phase=0.0):
         super().__init__()
 
         self.freq = freq
@@ -17,10 +17,10 @@ class Firefly(QGraphicsItem):
         self.angle = angle
         self.scale = 0.0
         self.omega = 1
-        self.pulse_angle = 0.0
+        self.phase = phase
 
         
-        self.timer_interval = 30
+        self.timer_interval = 1000/33
         self.timer = QTimer()
         self.timer.timeout.connect(self.timerEvent)
         self.timer.start(self.timer_interval)
@@ -59,9 +59,9 @@ class Firefly(QGraphicsItem):
 
     def timerEvent(self):
         #implement movement, pulsing here
-        self.pulse_angle += (pi / self.timer_interval)
+        self.phase += (pi / self.timer_interval)
         self.scale = exp(self.omega*sin(self.freq*self.angle))/exp(self.omega)
-        self.setOpacity(exp(self.omega*sin(self.freq*self.pulse_angle))/exp(self.omega))
+        self.setOpacity(exp(self.omega*sin(self.freq*self.phase))/exp(self.omega))
 
         #linetocenter
         ltc = QLineF(QPointF(0, 0,), self.mapFromScene(0, 0))
@@ -90,10 +90,14 @@ class Firefly(QGraphicsItem):
         dist = self.speed * self.timer_interval
         dx = dist*cos(self.angle)
         dy = dist*sin(self.angle)
-#        dt = sin(self.angle)*10
+        dt = sin(self.angle)*10
 
-        self.setPos(self.x()+dx, self.y()+dy)
-#        self.setRotation(self.rotation() + self.angle)
+        
+        self.speed += (-50 + qrand() % 100)/100.0
+        self.setPos(self.mapToParent(0, -(3 + sin(self.speed)*3)))
+#        self.setPos(self.mapToParent(0, -self.speed))
+#        self.setPos(self.x()+dx, self.y()+dy)
+        self.setRotation(self.rotation() + self.angle)
 
 
         
@@ -112,7 +116,8 @@ if __name__ == '__main__':
     for i in range(FlyCount):
         random_speed = (-50 + qrand()%100)/1000
         random_angle = (-pi + qrand()%(2*pi))/2*pi
-        fly = Firefly(speed=random_speed, angle=random_angle)
+        random_freq =  (0.25 + (qrand()%100)/100)
+        fly = Firefly(speed=random_speed, angle=random_angle, freq=random_freq, phase = random_angle)
         fly.setPos(sin((i*2*pi) / FlyCount)*200,
                             cos((i*2*pi) / FlyCount) * 200)
         scene.addItem(fly)
@@ -123,7 +128,7 @@ if __name__ == '__main__':
     view.setCacheMode(QGraphicsView.CacheBackground)
     view.setViewportUpdateMode(QGraphicsView.BoundingRectViewportUpdate)
     view.setDragMode(QGraphicsView.ScrollHandDrag)
-    view.setWindowTitle('Colliding Mice')
+    view.setWindowTitle('Fireflies')
     view.resize(600, 800)
     view.show()
 
